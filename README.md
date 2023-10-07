@@ -3,6 +3,7 @@
 ## Exercício 1 - Seção Crítica por espera ocupada
 
 Implemente, usando linguagem C com PThreads ou OpenMP ou ainda em JavaThreads, o algoritmo de Manna-Pnueli que implementa entrada em SC por algoritmo Cliente-Servidor. Demonstre o funcionamento do código para 2 e 4 threads como processos clientes, realizando o correto incremento em uma determinada variável global ou ainda através de "prints" que demonstrem o funcionamento correto da Exclusão Mútua para a seção crítica.
+
 OBS: Para provar que a seção crítica no código implementado de fato funciona, pode-se fazer um teste em dois códigos, onde o primeiro não implementa controle de seção crítica nos processos clientes (comentar o pré-protocolo, por exemplo) e o segundo faz a correta implementação da seção crítica nos processos clientes, e comparar as duas versões. Nestes testes faça com que a seção crítica seja executada inúmeras vezes pelos processos clientes (normalmente da ordem de bilhão de vezes). Segue abaixo um exemplo de seção crítica que pode ser usada no problema.
 
 Considerando a variável SOMA como global/compartilhada, tem-se o seguinte trecho de código:
