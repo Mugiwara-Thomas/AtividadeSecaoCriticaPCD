@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <omp.h>
 
-#define N 1000000000
+#define N 1000000000 // 1 bilhão
 
 int soma = 0;
 
