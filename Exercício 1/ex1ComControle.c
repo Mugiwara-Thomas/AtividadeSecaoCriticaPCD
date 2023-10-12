@@ -1,3 +1,7 @@
+/*
+Algoritmo de Manna-Pnueli que implementa entrada em SC por algoritmo Cliente-Servidor
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

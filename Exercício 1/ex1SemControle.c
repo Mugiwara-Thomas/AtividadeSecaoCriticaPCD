@@ -27,7 +27,7 @@ void cliente(int id) {
 int main() {
   int i;
 
-  #pragma omp parallel num_threads(4)
+  #pragma omp parallel for num_threads(4)
   {
     #pragma omp for
     for (i = 0; i < N; i++) {
