@@ -1,41 +1,62 @@
+/*
+INTEGRANTES:
+    - Thomas Lincoln Victor da Silva - 156603
+    - Luiz Fernando de Cristo Moloni - 159325
+
+Algoritmo de Manna-Pnueli que implementa entrada em SC por algoritmo Cliente-Servidor
+
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <omp.h>
 
-#define N 1000000000
+#define N 1000000000 // Total de Iterações - 1 bilhão
+#define N_THREADS 4 // Número de threads Clientes
 
-int soma = 0;
+int counter = 0; // Variável compartilhada
 
-void cliente(int id) {
-  int local;
-  int id_processo = omp_get_thread_num();
+void Client(int id) {
+    int local;
+    int id_processo = omp_get_thread_num();
 
-  if (id != id_processo) {
-    while (soma != id_processo) {
-      usleep(1);
-    }
-  }
+    // if (id != id_processo) {
+    //     while (counter != id_processo) {
+    //         continue;
+    //     }
+    // }
 
-  local = soma;
-  sleep(2);
-  soma = local + 1;
+    local = counter;
+    sleep(rand() % 2);
+    counter = local + 1;
 
-  printf("Cliente %d: soma = %d\n", id, soma);
+    printf("Cliente %d: counter = %d\n", id, counter);
 }
 
-int main() {
-  int i;
+void Server() {
+  printf("Servidor: counter = %d\n", counter);
+}
 
-  #pragma omp parallel for num_threads(4)
-  {
-    #pragma omp for
-    for (i = 0; i < N; i++) {
-      cliente(omp_get_thread_num());
+int main (){
+    int i, id;
+
+    #pragma omp parallel for num_threads(N_THREADS + 1) // +1 para o processo servidor
+      for (i = 0; i < N; i++) {
+        // Client(omp_get_thread_num());
+    
+        id = omp_get_thread_num();
+
+        if (id == N_THREADS) {
+            Server();
+        }else{
+          Client(id);
+        }
+        
+        
     }
-  }
 
-  printf("Soma final = %d\n", soma);
+    printf("Counter final = %d\n", counter);
 
-  return 0;
+    return 0;
 }

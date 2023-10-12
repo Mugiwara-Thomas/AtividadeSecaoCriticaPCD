@@ -17,8 +17,8 @@ INTEGRANTES:
 #define GEN 500       // Número de Gerações - Deve ser: 2000
 #define NUM_THREADS 8 // Número de threads para paralelização
 
-float total_cells = 0.0;
-double **critical_times;
+float total_cells = 0.0; // Variável global para contar o número de células vivas
+double **critical_times; // Matriz para armazenar os tempos críticos de cada thread
 
 // Função para imprimir a Matriz
 void PrintGrid(float **grid)
@@ -274,7 +274,7 @@ void FreeGrid(float **grid)
 }
 
 // Função a ser executada por cada thread para calcular a próxima geração
-void CalculateNextGen(float **grid, float **newGrid, int start_row, int end_row)
+void CalculateNextGen(float **grid, float **newGrid, int start_row, int end_row, int gen)
 {
     int count = 0;
 
@@ -332,27 +332,29 @@ void CalculateNextGen(float **grid, float **newGrid, int start_row, int end_row)
     }
 
     start_time = omp_get_wtime();    
-    #pragma omp barrier
+
     // Região crítica para atualizar total_cells
+    #pragma omp parallel for num_threads(NUM_THREADS)
+    for (int i = start_row; i < end_row; i++)
     {
-        for (int i = start_row; i < end_row; i++)
+        for (int j = 0; j < N; j++)
         {
-            for (int j = 0; j < N; j++)
+            #pragma omp critical
             {
-                if (grid[i][j] > 0.0)
+                // Somando o número de células vivas
+                if (newGrid[i][j] > 0.0)
                 {
-                    #pragma omp critical
-                    {
-                        total_cells += 1.0;
-                    }
+                    total_cells += 1.0;
                 }
             }
         }
     }
+    
 
     end_time = omp_get_wtime();
 
-    critical_times[omp_get_thread_num() * GEN + omp_get_thread_num()] = end_time - start_time;
+    // Armazenando o tempo crítico da thread
+    critical_times[omp_get_thread_num()][gen] = end_time - start_time;
 
     return;
 }
@@ -360,8 +362,8 @@ void CalculateNextGen(float **grid, float **newGrid, int start_row, int end_row)
 int main()
 {
     // Alocação dos grids
-    float **grid = (float *)malloc(N * sizeof(float *));
-    float **newGrid = (float *)malloc(N * sizeof(float *));
+    float **grid = (float **)malloc(N * sizeof(float *));
+    float **newGrid = (float **)malloc(N * sizeof(float *));
 
     struct timeval start, end;
 
@@ -398,34 +400,32 @@ int main()
         //--------------------------------------
         // Criando threads para calcular a próxima geração
         #pragma omp parallel for num_threads(NUM_THREADS)
+        for (int i = 0; i < NUM_THREADS; i++)
         {
-            for (int i = 0; i < NUM_THREADS; i++)
-            {
-                int thread_id = omp_get_thread_num();
-                int start_row = thread_id * (N / NUM_THREADS);
-                int end_row = (thread_id + 1) * (N / NUM_THREADS);
-                CalculateNextGen(grid, newGrid, start_row, end_row);
-            }
-
-            // -------------------------------------
-            // FIM DA REGIÃO PARALELA
-            //--------------------------------------
-
-            // Trocando as matrizes de gerações
-            float **temp = grid;
-            grid = newGrid;
-            newGrid = temp;
-
-            // Imprimindo o número de células vivas na geração atual
-            printf("Geração %d: Número de células vivas = %.0f\n", gen + 1, total_cells);
-
-            // Imprimindo a Matriz da Geração Atual
-            if (gen <= 5)
-            {
-                printf("\n");
-                PrintGrid(grid);
-            }
+            int thread_id = omp_get_thread_num();
+            int start_row = thread_id * (N / NUM_THREADS);
+            int end_row = (thread_id + 1) * (N / NUM_THREADS);
+            CalculateNextGen(grid, newGrid, start_row, end_row, gen);
         }
+
+        // -------------------------------------
+        // FIM DA REGIÃO PARALELA
+        //--------------------------------------
+
+        // Trocando as matrizes de gerações
+        float **temp = grid;
+        grid = newGrid;
+        newGrid = temp;
+
+        // Imprimindo o número de células vivas na geração atual
+        printf("Geração %d: Número de células vivas = %.0f\n", gen + 1, total_cells);
+
+        // Imprimindo a Matriz da Geração Atual
+        if (gen <= 5)
+        {
+            printf("\n");
+            PrintGrid(grid);
+        }        
     }
 
     // Parar o cronômetro
@@ -435,28 +435,32 @@ int main()
     double elapsed_time = (end.tv_sec - start.tv_sec) + ((end.tv_usec - start.tv_usec) / 1000000.0);
     printf("Tempo total para as %d gerações: %.2f segundos\n", GEN, elapsed_time);
 
-    // Calcular a média dos tempos gastos pelas threads em cada geração
-    double *avg_thread_times = (double *)malloc(NUM_THREADS * sizeof(double));
-    for (int i = 0; i < NUM_THREADS; i++)
+    // Calcular a média dos tempos gastos em cada geração por cada thread
+    double *avg_gen_times = (double *)malloc(GEN * sizeof(double));
+    for (int i = 0; i < GEN; i++)
     {
-        avg_thread_times[i] = 0.0;
-        for (int gen = 0; gen < GEN; gen++)
+        double sum = 0.0;
+        for (int j = 0; j < NUM_THREADS; j++)
         {
-            avg_thread_times[i] += critical_times[i][gen];
+            sum += critical_times[j][i];
         }
-        avg_thread_times[i] /= GEN;
+        avg_gen_times[i] = sum / NUM_THREADS;
     }
 
-    // Calcular a média global dos tempos das threads
+// Média global dos tempos gastos em cada geração
     double avg_global_time = 0.0;
-    for (int i = 0; i < NUM_THREADS; i++)
+    for (int i = 0; i < GEN; i++)
     {
-        avg_global_time += avg_thread_times[i];
+        avg_global_time += avg_gen_times[i];
     }
-    avg_global_time /= NUM_THREADS;
+    avg_global_time /= GEN;
+
+    // Imprimir o tempo médio global
+    printf("\nTempo médio global: %.10f segundos\n", avg_global_time);
 
     // Liberar o array de tempos
     free(critical_times);
+    free(avg_gen_times);
 
     // Liberando a memória alocada para as Matrizes
     FreeGrid(grid);
