@@ -15,39 +15,30 @@ Algoritmo de Manna-Pnueli que implementa entrada em SC por algoritmo Cliente-Ser
 #define N 1000000000 // Total de Iterações - 1 bilhão
 #define N_THREADS 4 // Número de threads Clientes
 
+omp_lock_t lock; //Lock para controlar a região critica
 int counter = 0; // Variável compartilhada
 
 void Client(int id) {
   int local;
-  int id_processo = omp_get_thread_num();
 
-  // if (id != id_processo) {
-  //   // aqui ta o ponto de diferença, no controle, nós setamos essa parte como região critica, então apenas um thread por vez pode fazer isso.
-  //   #pragma omp critical
-  //   {
-  //     while (counter != id_processo) {
-  //       continue;
-  //     }
-  //   }
-  // }
-  
-  #pragma omp critical 
-  {
-    local = counter;
-    sleep(rand() % 2);
-    counter = local + 1;
-  }
+  //Para controlar a região critica, usamos o omp_set_lock, que vai setar o lock, então apenas um thread por vez pode fazer isso.
+  omp_set_lock(&lock); //Pre protocolo
+
+  //Acessando a Região Critica
+  local = counter;
+  sleep(rand() % 2);
+  counter = local + 1; //Alterando o Valor da Variavel Compartilhada
 
   printf("Cliente %d: soma = %d\n", id, counter);
+  
+  omp_unset_lock(&lock); //Pos protocolo
 }
 
 void Server() {
-  sleep(rand() % 2);
-
-  #pragma omp critical
-  {
-    printf("Servidor: soma = %d\n", counter);
-  }
+//   sleep(rand() % 2);
+  omp_set_lock(&lock); //Pre protocolo
+  printf("Servidor: soma = %d\n", counter); //Acessando a Região Critica
+  omp_unset_lock(&lock); //Pos protocolo
 }
 
 int main() {
@@ -58,10 +49,10 @@ int main() {
   for (i = 0; i < N; i++) {      
     id = omp_get_thread_num();
 
-    if(id < N_THREADS) {
+    if(id < N_THREADS) { // Processos Clientes
         Client(id); 
     }else {  
-      if(id == N_THREADS) {
+      if(id == N_THREADS) { // Processo Servidor
           Server();
       }
     }                
