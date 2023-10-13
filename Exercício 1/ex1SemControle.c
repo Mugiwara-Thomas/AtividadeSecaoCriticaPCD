@@ -19,7 +19,8 @@ int counter = 0; // Variável compartilhada
 
 void Client(int id) {
     int local;
-    int id_processo = omp_get_thread_num();
+
+    // int id_processo = omp_get_thread_num();
 
     // if (id != id_processo) {
     //     while (counter != id_processo) {
@@ -29,12 +30,13 @@ void Client(int id) {
 
     local = counter;
     sleep(rand() % 2);
-    counter = local + 1;
+    counter = local + 1; // Região crítica
 
-    printf("Cliente %d: counter = %d\n", id, counter);
+    printf("Cliente %d: counter = %d\n", id, counter); 
 }
 
 void Server() {
+  sleep(rand() % 2);
   printf("Servidor: counter = %d\n", counter);
 }
 
@@ -42,18 +44,16 @@ int main (){
     int i, id;
 
     #pragma omp parallel for num_threads(N_THREADS + 1) // +1 para o processo servidor
-      for (i = 0; i < N; i++) {
-        // Client(omp_get_thread_num());
-    
-        id = omp_get_thread_num();
+    for (i = 0; i < N; i++) {      
+      id = omp_get_thread_num();
 
-        if (id == N_THREADS) {
+      if(id < N_THREADS) {
+          Client(id); 
+      }else {  
+        if(id == N_THREADS) {
             Server();
-        }else{
-          Client(id);
         }
-        
-        
+      }                
     }
 
     printf("Counter final = %d\n", counter);
