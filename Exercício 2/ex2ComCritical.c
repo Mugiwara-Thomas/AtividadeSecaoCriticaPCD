@@ -14,8 +14,8 @@ INTEGRANTES:
 // gcc -fopenmp -g RainbowGameOfLife-OpenMP.c -o lifePragma para executar
 
 #define N 2048        // Tamanho do Tabuleiro - Deve ser: 2048
-#define GEN 500       // Número de Gerações - Deve ser: 2000
-#define NUM_THREADS 8 // Número de threads para paralelização
+#define GEN 2000       // Número de Gerações - Deve ser: 2000
+#define NUM_THREADS 1 // Número de threads para paralelização
 
 float total_cells = 0.0; // Variável global para contar o número de células vivas
 double **critical_times; // Matriz para armazenar os tempos críticos de cada thread
@@ -321,7 +321,7 @@ void CalculateNextGen(float **grid, float **newGrid, int start_row, int end_row,
                 }
             }
 
-            // Região crítica para somar o número de células vivas
+            // // Região crítica para somar o número de células vivas
             // #pragma omp critical
             // {
             //     // Somando o número de células vivas

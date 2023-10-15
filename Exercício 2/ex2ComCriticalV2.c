@@ -17,8 +17,8 @@ INTEGRANTES:
 #define GEN 2000       // Número de Gerações - Deve ser: 2000
 #define NUM_THREADS 8 // Número de threads para paralelização
 
-float total_cells = 0.0; // Variável global para armazenar o número de células vivas
-double **critical_times; // Matriz para armazenar os tempos críticos de cada thread
+float total_cells = 0.0; // Variável global para contar o número de células vivas
+double *critical_times; // Matriz para armazenar os tempos críticos de cada thread
 
 // Função para imprimir a Matriz
 void PrintGrid(float **grid)
@@ -278,8 +278,6 @@ void CalculateNextGen(float **grid, float **newGrid, int start_row, int end_row,
 {
     int count = 0;
 
-    double start_time, end_time;
-
     for (int i = start_row; i < end_row; i++)
     {
         for (int j = 0; j < N; j++)
@@ -320,28 +318,16 @@ void CalculateNextGen(float **grid, float **newGrid, int start_row, int end_row,
                     newGrid[i][j] = 0.0;
                 }
             }
+
+            // // Região crítica para somar o número de células vivas
+            // #pragma omp critical
+            // {
+            //     // Somando o número de células vivas
+            //     if (newGrid[i][j] > 0.0)
+            //         total_cells += 1.0;
+            // }
         }
     }
-
-    start_time = omp_get_wtime();    
-
-    // Região paralela com cláusula reduction para calcular total_cells
-    #pragma omp parallel for reduction(+:total_cells) num_threads(NUM_THREADS)
-    for (int i = start_row; i < end_row; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            if (grid[i][j] > 0.0)
-            {
-                total_cells += 1.0;
-            }
-        }
-    }
-
-    end_time = omp_get_wtime();
-
-    // Armazenando o tempo crítico da thread
-    critical_times[omp_get_thread_num()][gen] = end_time - start_time;
 
     return;
 }
@@ -355,11 +341,7 @@ int main()
     struct timeval start, end;
 
     // Inicializando a matriz de tempos
-    critical_times = (double **)malloc(NUM_THREADS * sizeof(double *));
-    for (int i = 0; i < NUM_THREADS; i++)
-    {
-        critical_times[i] = (double *)malloc(GEN * sizeof(double));
-    }
+    critical_times = (double *)malloc(GEN * sizeof(double *));
 
     // Alocação dos espaços da matriz.
     for (int i = 0; i < N; i++)
@@ -395,6 +377,32 @@ int main()
             CalculateNextGen(grid, newGrid, start_row, end_row, gen);
         }
 
+        double start_time = omp_get_wtime();    
+
+        // Região crítica para atualizar total_cells
+        #pragma omp parallel for num_threads(NUM_THREADS)
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < N; j++)
+            {
+                #pragma omp critical
+                {
+                    // Somando o número de células vivas
+                    if (newGrid[i][j] > 0.0)
+                    {
+                        total_cells += 1.0;
+                    }
+                }
+            }
+        }
+        
+
+        double end_time = omp_get_wtime();
+
+        // Armazenando o tempo crítico da thread
+        critical_times[gen] = end_time - start_time;
+
+
         // -------------------------------------
         // FIM DA REGIÃO PARALELA
         //--------------------------------------
@@ -412,7 +420,7 @@ int main()
         {
             printf("\n");
             PrintGrid(grid);
-        }
+        }        
     }
 
     // Parar o cronômetro
@@ -422,23 +430,11 @@ int main()
     double elapsed_time = (end.tv_sec - start.tv_sec) + ((end.tv_usec - start.tv_usec) / 1000000.0);
     printf("Tempo total para as %d gerações: %.2f segundos\n", GEN, elapsed_time);
 
-    // Calcular a média dos tempos gastos em cada geração por cada thread
-    double *avg_gen_times = (double *)malloc(GEN * sizeof(double));
-    for (int i = 0; i < GEN; i++)
-    {
-        double sum = 0.0;
-        for (int j = 0; j < NUM_THREADS; j++)
-        {
-            sum += critical_times[j][i];
-        }
-        avg_gen_times[i] = sum / NUM_THREADS;
-    }
-
     // Média global dos tempos gastos em cada geração
     double avg_global_time = 0.0;
     for (int i = 0; i < GEN; i++)
     {
-        avg_global_time += avg_gen_times[i];
+        avg_global_time += critical_times[i];
     }
     avg_global_time /= GEN;
 
@@ -447,7 +443,6 @@ int main()
 
     // Liberar o array de tempos
     free(critical_times);
-    free(avg_gen_times);
 
     // Liberando a memória alocada para as Matrizes
     FreeGrid(grid);
