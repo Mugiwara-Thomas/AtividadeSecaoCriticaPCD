@@ -11,7 +11,7 @@ INTEGRANTES:
 #include <omp.h>
 #include <sys/time.h>
 
-// gcc -fopenmp -g RainbowGameOfLife-OpenMP.c -o lifePragma para executar
+// gcc -fopenmp -o ./output/ECR ./ex2ComReduction.c para executar
 
 #define N 2048        // Tamanho do Tabuleiro - Deve ser: 2048
 #define GEN 2000       // Número de Gerações - Deve ser: 2000

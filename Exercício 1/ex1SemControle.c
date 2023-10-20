@@ -29,7 +29,7 @@ void Client(int id) {
     // }
 
     local = counter;
-    sleep(rand() % 2);
+    sleep(rand() % 2); //
     counter = local + 1; // Região crítica
 
     printf("Cliente %d: counter = %d\n", id, counter); 

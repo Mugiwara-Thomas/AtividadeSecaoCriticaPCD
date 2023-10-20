@@ -13,7 +13,7 @@ Algoritmo de Manna-Pnueli que implementa entrada em SC por algoritmo Cliente-Ser
 #include <omp.h>
 
 #define N 1000000000 // Total de Iterações - 1 bilhão
-#define N_THREADS 4 // Número de threads Clientes
+#define N_THREADS 2 // Número de threads Clientes
 
 int counter = 0; // Variável compartilhada
 

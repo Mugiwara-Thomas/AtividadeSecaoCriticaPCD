@@ -11,11 +11,11 @@ INTEGRANTES:
 #include <omp.h>
 #include <sys/time.h>
 
-// gcc -fopenmp -g RainbowGameOfLife-OpenMP.c -o lifePragma para executar
+// gcc -fopenmp -o ./output/ECRV2 ./ex2ComReductionV2.c para executar
 
 #define N 2048        // Tamanho do Tabuleiro - Deve ser: 2048
 #define GEN 500       // Número de Gerações - Deve ser: 2000
-#define NUM_THREADS 8 // Número de threads para paralelização
+#define NUM_THREADS 1 // Número de threads para paralelização
 
 float total_cells = 0.0; // Variável global para armazenar o número de células vivas
 double *critical_times; // Matriz para armazenar os tempos críticos de cada thread
